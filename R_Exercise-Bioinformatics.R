@@ -71,10 +71,10 @@
 # in case you want to keep your changes.
 
 
-# === Working with the project files
+# === Working with the Project Files
 
-# Work through the project files in the sequence listed below. While working
-# with the project files, DO NOT SIMPLY  source()  THEM!
+# Work through the Project Files in the sequence listed below. While working
+# with the Project Files, DO NOT SIMPLY  source()  THEM!
 
 # If there are portions you don't understand, use R's help system, Google for an
 # answer, or ask me. Don't continue if you don't understand what's going on.
