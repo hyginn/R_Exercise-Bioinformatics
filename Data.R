@@ -2,12 +2,12 @@
 #
 # Purpose:  Introduction to Bioinformatics with R - Data
 #
-# Version: 0.1
+# Version: 1.0
 #
-# Date:    2016  12
+# Date:    2016  12  30
 # Author:  Boris Steipe (boris.steipe@utoronto.ca)
 #
-# V 0.1    First code
+# V 1.0    First final version
 #
 # TODO:
 #
