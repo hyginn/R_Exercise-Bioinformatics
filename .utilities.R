@@ -2,10 +2,13 @@
 #
 # Miscellaneous R code to suppport the Bioinformatics Introduction material
 #
-# Version: 1.1
-# Date:    2016 12
+# Version: 1.2
+# Date:    2017 01
 # Author:  Boris Steipe
 #
+# V 1.2    added functions plotAAenrichment(), chunkSeq(),
+#          dbAnnotateFeature(), dbFetchProteinData();
+#          changed dbSanitizeSequence() to handle FASTA files.
 # V 1.1    Simplify and remove course-specific code
 # V 1.0    First code
 #
@@ -39,6 +42,112 @@ objectInfo <- function(x) {
         attributes(x)
     }
     # Done
+}
+
+
+plotAAenrichment <- function(s, ref) {
+
+    # Purpose: Plot relative enrichment of amino acids.
+    #
+    # Parameters:
+    #     s: A sequence in one-letter code
+    #     ref: A vector of reference frequencies. If missing,
+    #          aaindex[[459]] dataset from the seqinr package is used.
+    #          If it has length 1, it is assumed to be a sequence, to
+    #          be converted into a frequency table.
+    # Value:
+    #      The vector of sorted log2(fObs/fRef).
+    #      Barplot as a sideeffect.
+    #
+    # Note: There are no sanity checks done on the input.
+    #       There are also no checks that neither "ref" frequencies must not
+    #       be zero for an amino acid in "obs".
+
+    if (missing(ref)) {
+        ref <- numeric()
+        ref["A"] <- 7.9
+        ref["R"] <- 4.9
+        ref["N"] <- 4.0
+        ref["D"] <- 5.5
+        ref["C"] <- 1.9
+        ref["Q"] <- 4.4
+        ref["E"] <- 7.1
+        ref["G"] <- 7.1
+        ref["H"] <- 2.1
+        ref["I"] <- 5.2
+        ref["L"] <- 8.6
+        ref["K"] <- 6.7
+        ref["M"] <- 2.4
+        ref["F"] <- 3.9
+        ref["P"] <- 5.3
+        ref["S"] <- 6.6
+        ref["T"] <- 5.3
+        ref["W"] <- 1.2
+        ref["Y"] <- 3.1
+        ref["V"] <- 6.8
+    } else if (length(ref) == 1) {
+        # assume this to be a sequence
+        ref <- table(unlist(strsplit(toupper(ref), "")))
+        ref <- 100 * (ref / sum(ref))  # Normalize
+    }
+    obs <- table(unlist(strsplit(toupper(s), "")))
+    obs <- 100 * (obs / sum(obs))  # Normalize
+
+    logR <- numeric()
+    for (aa in names(obs)) {
+        logR[aa] <- log(obs[aa] / ref[aa]) / log(2)
+    }
+    logR <- sort(logR, decreasing = TRUE)
+
+    # plot
+    label <- expression(paste(log[2],"( f(obs) / f(ref) )", sep = ""))
+
+    chargePlus  <- "#282A8F"
+    chargeMinus <- "#931523"
+    hydrophilic <- "#57808F"
+    hydrophobic <- "#6F7A79"
+    plain       <- "#FDF7F7"
+
+    # Preview colors
+    # barplot(rep(1,5), col=c(chargePlus,
+    #                         chargeMinus,
+    #                         hydrophilic,
+    #                         hydrophobic,
+    #                         plain      ) )
+    # Assign the colors to the different amino acid names
+    barColors <- character()
+
+    for (AA in names(logR)) {
+        if      (grepl("[HKR]",     AA)) {barColors[AA] <- chargePlus }
+        else if (grepl("[DE]",      AA)) {barColors[AA] <- chargeMinus}
+        else if (grepl("[NQST]",    AA)) {barColors[AA] <- hydrophilic}
+        else if (grepl("[FMILYVW]", AA)) {barColors[AA] <- hydrophobic}
+        else                              barColors[AA] <- plain
+    }
+
+    barplot(logR,
+            main = "AA composition enrichment",
+            ylab = label,
+            col = barColors,
+            cex.names=0.8)
+    abline(h=0)
+
+    legend (x = 1,
+            y = -1,
+            legend = c("charged (+)",
+                       "charged (-)",
+                       "hydrophilic",
+                       "hydrophobic",
+                       "plain"),
+            bty = "n",
+            fill = c(chargePlus,
+                     chargeMinus,
+                     hydrophilic,
+                     hydrophobic,
+                     plain))
+    # done
+
+    invisible(logR)
 }
 
 
@@ -314,6 +423,19 @@ maskSet <- function(set,
     return(AAStringSet(seqSet))
 }
 
+chunkSeq <- function(s, w = 50) {
+    # Purpose: cat() sequence s in blocks of w characters.
+    iChunks <- seq(1, nchar(s), by = w)
+    chunks <- character(length(iChunks))
+    cat("\n")
+    for (i in 1:length(iChunks)) {
+        chunks[i] <- substr(s, iChunks[i], iChunks[i] + w - 1)
+        cat(chunks[i], "\n")
+    }
+    cat("\n")
+    invisible(chunks)
+}
+
 
 
 # ====== DATABASE FUNCTIONS ============================================
@@ -414,14 +536,27 @@ dbInit <- function() {
 dbSanitizeSequence <- function(s, strictAA = TRUE) {
     # Sanity check a protein sequence and convert to uppercase.
     #
-    # s:  an object that is or can be coerced to character
+    #        s:  an object that is or can be coerced to character
+    # strictAA: modifies behavior regarding the presence of non one-letter
+    #           code characters.
     #
-    # Value: a single string that contains only the 20 proteinigenic amino acids
-    #        (strictAA is TRUE) in uppercase, or other letters too
-    #        (if strictAA is FALSE.)
+    #    Value: a single string that contains only the 20 proteinogenic
+    #           amino acids (if strictAA is TRUE) in uppercase, or
+    #           other letters too (if strictAA is FALSE.) If s contains lines
+    #           that are prefixed with a ">" (i.e. FASTA format), those
+    #           header lines are removed.
 
     # Flatten any structure that s may have.
     s <- paste(unlist(s), collapse="")
+
+    # It might be a FASTA format:
+    if (substr(s, 1, 1) == ">") {
+        # Split on linebreaks and remove
+        # any lines beginning with ">"
+        s <- unlist(strsplit(s, "\n"))
+        s <- s[-(grep("^>", s))]
+        s <- paste(s, collapse="")
+    }
 
     # Remove all non-letters and convert to upper case.
     s <- toupper(gsub("[^a-zA-Z]", "", s))
@@ -455,6 +590,24 @@ dbConfirmUnique <- function(x) {
     } else {
         return(x)
     }
+}
+
+dbAnnotateFeature <- function(db, pID, fID, Start, End) {
+    # Purpose: Add an annotation to the proteinAnnotation table
+    #    db: the target database
+    #   pID: the protein ID
+    #   fID: the feature ID
+    # Start: start of the annotated range
+    #   End: end of the annotated range
+    # Value: the updated proteinAnnotation table
+
+    panRow <- data.frame(ID = dbCreateID(db$proteinAnnotation$ID),
+                         protein.ID = pID,
+                         feature.ID = fID,
+                         start = Start,
+                         end = End,
+                         stringsAsFactors = FALSE)
+    return(rbind(db$proteinAnnotation, panRow))
 }
 
 
@@ -535,6 +688,116 @@ dbGetFeatureSequence <- function(DB, name, feature) {
                   DB$proteinAnnotation$end[DB$proteinAnnotation$ID == fanID]))
 }
 
+dbFetchProteinData <- function(rID, verbose = TRUE) {
+    # Retrieves data for a given protein refseq ID from
+    # NCBI and UniProt. NCBI data is retrived via the
+    # eutils API.
+    # UniProt IDs are retrieved from the
+    # ID mapping service via a POST call.
+    #
+    # cf. http://www.uniprot.org/help/programmatic_access
+    # rID: a valid RefSeqID
+    #
+    # Value: Returns a list of dataframe rows:
+    #        db$version: db version for format
+    #        db$taxonomy: one row of taxonomy data
+    #        db$protein: one row of protein data
+    #
+    # Note! The db$protein$ID is not set but need to be created by the caller
+    #       after the function returns.
+
+    # load packages:
+    if (!require(stringr, quietly=TRUE)) {
+        install.packages("stringr")
+        library(stringr)
+    }
+
+    if (!require(httr, quietly=TRUE)) {
+        install.packages("httr")
+        library(httr)
+    }
+
+    if (!require(XML, quietly=TRUE)) {
+        install.packages("XML")
+        library(XML)
+    }
+
+    if (!require(reutils, quietly=TRUE)) {
+        install.packages("reutils")
+        library(reutils)
+    }
+
+    # get UniProt ID for refseq
+    response <- POST("http://www.uniprot.org/mapping/",
+                     body = list(from = "P_REFSEQ_AC",
+                                 to = "ACC",
+                                 format = "tab",
+                                 query = rID))
+    if (response$status_code == 200) { # 200: oK
+        uID <- str_trim(unlist(strsplit(httr::content(response), "\\s+"))[4])
+        if (is.na(uID)) {
+            warning(paste("UniProt ID mapping service returned NA.",
+                          "Check your RefSeqID."))
+        }
+    } else {
+        uID <- NA
+        warning(paste("UniProt ID mapping not available:",
+                      "server returned status",
+                      response$status_code))
+    }
+
+
+    # Fetch NCBI data
+    eHist <- epost(esearch(rID, "protein"), "protein")
+    x <- content(esummary( eHist, version = "1.0"), "parsed")
+    taxID <- x$TaxId
+    binom <- efetch(taxID, "taxonomy")$xmlValue("/TaxaSet/Taxon/ScientificName")
+    fasta <- content(efetch(eHist, retmode = "text", rettype = "fasta"))
+    AA <- dbSanitizeSequence(fasta)
+
+    # try using the word directly preceding the [<species name>] in the Title
+    # as the name
+    v <- unlist(strsplit(x$Title, "\\s+"))
+    iSp <- grep("\\[", v)
+    if (length(iSp) > 0 && iSp > 1) {
+        nam <- v[iSp - 1]
+    } else {
+        nam <- NA
+    }
+
+    db <- list()
+    db$version <- "1.0"
+    db$protein <- data.frame(
+        ID = NA,
+        name = nam,
+        RefSeqID = rID,
+        UniProtID = uID,
+        taxonomy.ID = taxID,
+        sequence = AA,
+        stringsAsFactors = FALSE)
+    db$taxonomy <- data.frame(
+        ID = taxID,
+        species = binom,
+        stringsAsFactors = FALSE)
+
+    if (verbose) {
+        cat(paste("Data retrieved:\n"))
+        cat(paste("  name:         ", db$protein$name,         "\n"))
+        cat(paste("  refSeqID:     ", db$protein$RefSeqID,     "\n"))
+        cat(paste("  uniProtID:    ", db$protein$UniProtID,    "\n"))
+        cat(paste("  taxID:        ", db$protein$taxonomy.ID,  "\n"))
+        cat(paste("  organismName: ", db$taxonomy$species,     "\n"))
+        len <- nchar(db$protein$sequence)
+        cat(paste("  seq:           ",
+                  substr(db$protein$sequence, 1, 10),
+                  " ... ",
+                  substr(db$protein$sequence, len-10, len),
+                  " (", len, " AA)",
+                  "\n\n", sep=""))
+    }
+
+    return(db)
+}
 
 
 # ====== SUPPORT FUNCTIONS =====================================================
