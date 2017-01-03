@@ -447,7 +447,9 @@ objectInfo(refDB)
 
 
 
-# == EXERCISES
+# ==============================================================================
+#      PART FOUR: EXERCISES
+# ==============================================================================
 # Please work through the following exercise questions.
 # I may ask you to hand in your solutions for credit at
 # some point in the course.
@@ -502,9 +504,9 @@ objectInfo(refDB)
 
 
 # DATA-5:
-# Change your function so that if name or species are not specified, all names
-# or species will be returned (in case the function does not behave in this way
-# already).
+# Change your function so that if name or species are not specified, all
+# names or species, respectively, will be matched by default (in case the
+# function does not behave in this way already).
 
 
 
