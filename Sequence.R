@@ -1850,6 +1850,10 @@ for (i in 1:ncol(apsesMat)) {
 # useful. It becomes _a lot_ (!) more interesting, when we map these values to
 # 3D structure. This will be our task in the next unit.
 
+# Before you close this session, save apsesMat and vI for the Structure.R unit:
+save(apsesMat, vI, file = "infoValues.RData")
+
+
 
 # This concludes the R code for the Sequence unit.
 #  - myDB should be easily recreatable from version 0.5, which includes
