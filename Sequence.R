@@ -1709,7 +1709,8 @@ for (i in 1:length(tmp)) {
 }
 row.names(apsesMat) <- names(tmp)
 colnames(apsesMat) <- 1:ncol(apsesMat)
-# apsesMat contains the aligned characters, one character per elemnt and we can easily extract them by row or column.
+# apsesMat contains the aligned characters, one character per element and we can
+# easily extract them by row or column.
 head(apsesMat)
 
 apsesMat[ , 67]
