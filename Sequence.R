@@ -2,11 +2,12 @@
 #
 # Purpose:  Introduction to Bioinformatics with R - Sequence
 #
-# Version: 1.0
+# Version: 1.0.1
 #
-# Date:    2017  01  03
+# Date:    2017  01  09
 # Author:  Boris Steipe (boris.steipe@utoronto.ca)
 #
+# V 1.0.1  Typo
 # V 1.0    First code
 #
 # TODO:
@@ -453,7 +454,7 @@ plain       <- "#FDF7F7"
 # Assign the colors to the different amino acid names
 barColors <- character()
 
-for (AA in names(logR)) {
+for (AA in names(logRatio)) {
     if      (grepl("[HKR]",     AA)) {barColors[AA] <- chargePlus }
     else if (grepl("[DE]",      AA)) {barColors[AA] <- chargeMinus}
     else if (grepl("[NQST]",    AA)) {barColors[AA] <- hydrophilic}
