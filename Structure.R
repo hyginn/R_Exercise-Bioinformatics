@@ -2,11 +2,12 @@
 #
 # Purpose:  Introduction to Bioinformatics with R - Structure
 #
-# Version: 1.0
+# Version: 1.0.1
 #
-# Date:    2017  01
+# Date:    2017  01  12
 # Author:  Boris Steipe (boris.steipe@utoronto.ca)
 #
+# V 1.0.1  Fix typo
 # V 1.0    First code
 #
 # TODO:
@@ -834,7 +835,7 @@ iFirst <- 4  # residue number for the first residue
 SPIPUmodel <- read.pdb(PDB_INFILE) # read the PDB file into a list
 
 # == Modify residue numbers for each atom
-resNum <- as.numeric(YFOmodel $atom[,"resno"])
+resNum <- as.numeric(SPIPUmodel $atom[,"resno"])
 resNum <- resNum - resNum[1] + iFirst  # add offset
 
 SPIPUmodel$atom[ , "resno"] <- resNum   # replace old numbers with new
